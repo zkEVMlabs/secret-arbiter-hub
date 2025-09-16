@@ -61,16 +61,18 @@ Create `.env.local` with these variables:
 ```env
 # 🔗 Blockchain Configuration
 NEXT_PUBLIC_CHAIN_ID=11155111
-NEXT_PUBLIC_RPC_URL=https://sepolia.infura.io/v3/b18fb7e6ca7045ac83c41157ab93f990
+NEXT_PUBLIC_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID
 
 # 🔌 Wallet Integration
-NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=2ec9743d0d0cd7fb94dee1a7e6d33475
-VITE_WALLET_CONNECT_PROJECT_ID=2ec9743d0d0cd7fb94dee1a7e6d33475
+NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=YOUR_WALLET_CONNECT_PROJECT_ID
+VITE_WALLET_CONNECT_PROJECT_ID=YOUR_WALLET_CONNECT_PROJECT_ID
 
 # 🌐 Network Access
-NEXT_PUBLIC_INFURA_API_KEY=b18fb7e6ca7045ac83c41157ab93f990
+NEXT_PUBLIC_INFURA_API_KEY=YOUR_INFURA_API_KEY
 NEXT_PUBLIC_RPC_URL=https://1rpc.io/sepolia
 ```
+
+> **⚠️ Security Note**: Replace placeholder values with your actual API keys. Never commit real keys to version control.
 
 ## 🎯 How It Works
 

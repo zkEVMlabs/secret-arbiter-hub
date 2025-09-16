@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Shield, FileText, Users, Clock } from 'lucide-react'
+import { Shield, FileText, Users, Clock, Lock, CheckCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseEther } from 'viem'
+import { encryptDisputeData } from '@/lib/fhe-encryption'
 
 // Contract ABI - In a real implementation, this would be imported from the compiled contract
 const CONTRACT_ABI = [
@@ -31,6 +32,8 @@ const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000" // Replace
 
 export function DisputeForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEncrypting, setIsEncrypting] = useState(false)
+  const [encryptionStatus, setEncryptionStatus] = useState<'idle' | 'encrypting' | 'encrypted' | 'error'>('idle')
   const [formData, setFormData] = useState({
     disputeType: '',
     amount: '',
@@ -49,6 +52,10 @@ export function DisputeForm() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    // Reset encryption status when form data changes
+    if (encryptionStatus === 'encrypted') {
+      setEncryptionStatus('idle')
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,16 +80,34 @@ export function DisputeForm() {
     }
 
     setIsSubmitting(true)
+    setIsEncrypting(true)
+    setEncryptionStatus('encrypting')
     
     try {
-      // In a real implementation, you would encrypt the amount using FHE
-      // For now, we'll simulate the encryption process
+      // Step 1: Encrypt sensitive data using FHE
+      toast({
+        title: "🔐 Encrypting Data",
+        description: "Your dispute data is being encrypted for privacy...",
+      })
+
+      const amount = parseFloat(formData.amount)
+      const { encryptedAmount, proof, hashedDescription, hashedEvidence } = await encryptDisputeData(
+        amount,
+        formData.description,
+        formData.evidence
+      )
+
+      setEncryptionStatus('encrypted')
+      setIsEncrypting(false)
+
+      toast({
+        title: "✅ Data Encrypted",
+        description: "Your dispute data has been encrypted successfully.",
+      })
+
+      // Step 2: Submit to blockchain
       const deadline = Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days from now
       const amountInWei = parseEther(formData.amount)
-      
-      // Simulate FHE encryption (in real implementation, this would be done client-side)
-      const encryptedAmount = new Uint8Array(32) // Placeholder for encrypted amount
-      const inputProof = new Uint8Array(64) // Placeholder for proof
       
       await writeContract({
         address: CONTRACT_ADDRESS,
@@ -90,16 +115,19 @@ export function DisputeForm() {
         functionName: 'createDispute',
         args: [
           formData.respondent as `0x${string}`,
-          formData.description,
+          hashedDescription, // Use hashed description instead of plain text
           BigInt(deadline),
           encryptedAmount,
-          inputProof
+          proof
         ],
         value: amountInWei
       })
       
     } catch (err) {
       console.error('Error submitting dispute:', err)
+      setEncryptionStatus('error')
+      setIsEncrypting(false)
+      
       toast({
         title: "Submission Failed",
         description: "There was an error submitting your dispute. Please try again.",
@@ -113,7 +141,7 @@ export function DisputeForm() {
   // Show success message when transaction is confirmed
   if (isConfirmed) {
     toast({
-      title: "Dispute Submitted Successfully",
+      title: "🎉 Dispute Submitted Successfully",
       description: "Your encrypted dispute has been submitted to the blockchain.",
     })
   }
@@ -227,6 +255,44 @@ export function DisputeForm() {
             </div>
           </div>
 
+          {/* Encryption Status Indicator */}
+          {encryptionStatus !== 'idle' && (
+            <div className={`p-4 rounded-lg border ${
+              encryptionStatus === 'encrypting' 
+                ? 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800'
+                : encryptionStatus === 'encrypted'
+                ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800'
+                : 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800'
+            }`}>
+              <div className="flex items-center gap-2">
+                {encryptionStatus === 'encrypting' && (
+                  <>
+                    <Lock className="w-4 h-4 text-blue-600 animate-pulse" />
+                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                      🔐 Encrypting your dispute data...
+                    </p>
+                  </>
+                )}
+                {encryptionStatus === 'encrypted' && (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <p className="text-sm text-green-600 dark:text-green-400">
+                      ✅ Data encrypted successfully
+                    </p>
+                  </>
+                )}
+                {encryptionStatus === 'error' && (
+                  <>
+                    <Shield className="w-4 h-4 text-red-600" />
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      ❌ Encryption failed. Please try again.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {!isConnected && (
             <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
               <p className="text-sm text-destructive">
@@ -238,10 +304,12 @@ export function DisputeForm() {
           <Button 
             type="submit" 
             className="w-full bg-gradient-legal hover:opacity-90 text-primary-foreground shadow-legal"
-            disabled={isSubmitting || isPending || isConfirming || !isConnected}
+            disabled={isSubmitting || isPending || isConfirming || !isConnected || isEncrypting}
           >
-            {isSubmitting || isPending || isConfirming 
-              ? 'Processing...' 
+            {isEncrypting 
+              ? '🔐 Encrypting Data...' 
+              : isSubmitting || isPending || isConfirming 
+              ? '📤 Submitting to Blockchain...' 
               : 'Submit Encrypted Dispute'
             }
           </Button>

@@ -1,6 +1,8 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="8" fill="#1a1a1a"/>
-  <path d="M8 12h16v2H8v-2zm0 4h16v2H8v-2zm0 4h12v2H8v-2z" fill="#ffffff"/>
-  <circle cx="24" cy="8" r="3" fill="#3b82f6"/>
-  <path d="M22 8h4M24 6v4" stroke="#ffffff" stroke-width="1" stroke-linecap="round"/>
+  <rect width="32" height="32" rx="8" fill="#0f172a"/>
+  <!-- Scale/Balance Icon -->
+  <path d="M16 6v20M8 12l8-6 8 6M8 20l8-6 8 6" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Encrypted Data Symbol -->
+  <circle cx="24" cy="8" r="2" fill="#10b981"/>
+  <path d="M23 8h2M24 7v2" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round"/>
 </svg>
